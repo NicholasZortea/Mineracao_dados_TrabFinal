@@ -11,9 +11,17 @@ colunas_comum = df_work.columns.intersection(df_class.columns)
 df_work = df_work[colunas_comum]
 df_work['Class'] = class_column
 
-df_work.to_csv("work_padronizado.csv", index=False)
+# Removendo os '*' da coluna
+df_work['DmgPierce'] = df_work['DmgPierce'].astype(str).str.replace('*', '', regex=False)
 
 
-coluna_teste = df_work['DmgPierce']
-lista_limpa = coluna_teste.replace('--', pd.NA).dropna()
-print(lista_limpa.describe.mean())
+df_work = df_work.replace('--', 0)
+
+colunas_armor = ['ArmorHack', 'ArmorPierce', 'ArmorCrush']
+
+for i in colunas_armor:
+    df_work[i] = df_work[i].astype(str).str.replace('%', '', regex=False)
+    df_work[i] = pd.to_numeric(df_work[i], errors='coerce').fillna(0)
+    df_work[i] = df_work[i] / 100
+
+print(df_work)
