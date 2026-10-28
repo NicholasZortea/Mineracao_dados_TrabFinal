@@ -20,11 +20,6 @@ df_work['Class'] = class_column
 # Removendo o espaco nao separavel da Pop do Pharaoh ('\xa00' -> '0')
 df_work['Pop'] = df_work['Pop'].astype(str).str.strip()
 
-# Juntando classes com apenas 1 exemplo a classes parecidas
-df_work['Class'] = df_work['Class'].replace({
-    'Spear Infantary': 'Melee Infantary',
-    'Ranged Cavalry': 'Cavalry',
-})
 
 # Removendo os '*' da coluna
 df_work['DmgPierce'] = df_work['DmgPierce'].astype(str).str.replace('*', '', regex=False)
