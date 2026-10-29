@@ -14,12 +14,12 @@ Problemas encontrados no dataset e como sao tratados:
    '%'  nas colunas de Armor   (ex.: '35%')
    -> removidos.
 3. Marcadores de valor vazio: '--', 'none' e celulas em branco.
-   - Nas colunas de dano e alcance eles significam "a unidade nao possui esse
-     atributo", portanto o valor correto e 0.
-   - Em Age, Pop e Train time eles significam "valor desconhecido" (uma idade
-     0 ou um tempo de treino 0 nao existem no jogo). Nesses casos o valor e
-     preenchido com a MEDIANA da coluna. A justificativa da mediana esta no
-     grafico gerado por analise_exploratoria.py.
+   Em todas as colunas eles significam "a unidade nao possui esse atributo",
+   portanto o valor correto e 0:
+   - nas colunas de dano e alcance, a unidade nao tem aquele tipo de ataque;
+   - em Age, Pop e Train time, os vazios aparecem apenas em Herois que nao
+     sao treinados normalmente (Pharaoh, Son of Osiris e Hero of Ragnarok),
+     que tambem nao tem custo. O valor nao esta perdido, ele nao existe.
 4. Classes com pouquissimas instancias (Spear Infantary e Ranged Cavalry tem
    apenas 1 unidade cada). Com um unico exemplo o modelo nao aprende a classe
    e ela nao pode ser distribuida entre os folds da validacao cruzada
@@ -50,9 +50,6 @@ CARACTERES_A_REMOVER = {
     "ArmorPierce": "%",
     "ArmorCrush": "%",
 }
-
-# Colunas em que um valor ausente e desconhecido (e nao "zero")
-COLUNAS_PREENCHIDAS_COM_MEDIANA = ["Age", "Pop", "Train time"]
 
 # Classes com menos instancias do que isso sao removidas. O valor acompanha o
 # numero de folds da validacao cruzada usada no classificador (4).
@@ -114,8 +111,7 @@ def converter_para_numerico(df):
 def preparar_dados_com_ausentes():
     """
     Carrega os dados unidos, limpa o texto e converte para numero, mantendo os
-    valores ausentes como NaN. Usada tambem pela analise exploratoria, que
-    precisa enxergar os dados antes do preenchimento.
+    valores ausentes como NaN para serem preenchidos na etapa seguinte.
     """
     df = carregar_dados_unidos()
     df = remover_espacos(df)
@@ -125,25 +121,13 @@ def preparar_dados_com_ausentes():
     return df
 
 
-def preencher_ausentes_com_mediana(df):
-    """Preenche Age, Pop e Train time ausentes com a mediana da coluna."""
-    df = df.copy()
-    for coluna in COLUNAS_PREENCHIDAS_COM_MEDIANA:
-        mediana = df[coluna].median()
-        quantidade_ausente = df[coluna].isna().sum()
-
-        df[coluna] = df[coluna].fillna(mediana)
-
-        print(f"[limpeza] {coluna}: {quantidade_ausente} ausente(s) preenchido(s) com a mediana ({mediana})")
-    return df
-
-
 def preencher_ausentes_com_zero(df):
-    """Nas demais colunas, ausencia significa que o atributo nao existe: vira 0."""
+    """Ausencia significa que o atributo nao existe para a unidade: vira 0."""
     df = df.copy()
     for coluna in colunas_de_atributos(df):
-        if coluna in COLUNAS_PREENCHIDAS_COM_MEDIANA:
-            continue
+        quantidade_ausente = df[coluna].isna().sum()
+        if quantidade_ausente:
+            print(f"[limpeza] {coluna}: {quantidade_ausente} valor(es) inexistente(s) -> 0")
         df[coluna] = df[coluna].fillna(0)
     return df
 
@@ -161,7 +145,6 @@ def converter_colunas_inteiras(df):
 def limpar_dados():
     """Executa a etapa completa e salva o resultado em work_padronizado.csv."""
     df = preparar_dados_com_ausentes()
-    df = preencher_ausentes_com_mediana(df)
     df = preencher_ausentes_com_zero(df)
     df = converter_colunas_inteiras(df)
 
